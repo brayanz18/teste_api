@@ -3,7 +3,8 @@ package api_teste.ds.exceptions;
 import api_teste.ds.services.exceptions.DataBindingViolationException;
 import api_teste.ds.services.exceptions.ObjectNotFoundException;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandle extends ResponseEntityExceptionHandler {
+    
 
     @Value("${server.error.include-exception:false}")
     private boolean printStackTrace;
@@ -101,7 +103,12 @@ public class GlobalExceptionHandle extends ResponseEntityExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(httpStatus.value(), message);
 
         if (printStackTrace) {
-            errorResponse.setStackTrace(ExceptionUtils.getStackTrace(exception));
+            StringWriter stringWriter = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(stringWriter);
+        
+            exception.printStackTrace(printWriter);
+        
+            errorResponse.setStackTrace(stringWriter.toString());
         }
 
         return ResponseEntity.status(httpStatus).body(errorResponse);
