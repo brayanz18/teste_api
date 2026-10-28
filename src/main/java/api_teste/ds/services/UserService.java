@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.validation.Valid;
 import api_teste.ds.exceptions.AuthorizationException;
 import api_teste.ds.models.User;
 import api_teste.ds.models.dtos.UserCreateDTO;
@@ -20,6 +21,8 @@ import api_teste.ds.repositories.UserRepository;
 import api_teste.ds.security.UserSpringSecurity;
 import api_teste.ds.services.exceptions.DataBindingViolationException;
 import api_teste.ds.services.exceptions.ObjectNotFoundException;
+
+import api_teste.ds.security.UserSpringSecurity;
 
 @Service
 public class UserService {
