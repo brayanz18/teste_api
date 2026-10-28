@@ -12,13 +12,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Objects;
-
+/*
 @Entity
 @Table(name = Task.TABLE_NAME)
 @AllArgsConstructor 
@@ -46,4 +47,26 @@ public class Task {
     private String description;
 
     
+}
+*/
+
+@Entity 
+@Table (name = Task.TABLE_NAME)
+@AllArgsConstructor 
+@NoArgsConstructor 
+@Data 
+
+public class Task {
+
+    public static final String TABLE_NAME ="task";
+
+    @Id 
+    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @Column (name = "id", unique = true)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn (name = "user_id", nullable = false, updatable = false)
+    private User user;
+
 }

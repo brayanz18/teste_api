@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 
 import api_teste.ds.models.Task;
 
+import api_teste.ds.models.projections.TaskProjection;
+
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
@@ -16,7 +18,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     // Opção 1: Derived Query Method (Padrão e Recomendado pelo Spring Data JPA)
     // O Spring gera o SQL automaticamente a partir do nome do método.
     // =========================================================================
-    List<Task> findByUser_Id(Long id);
+    List<TaskProjection> findByUser_Id(Long id);
 
     /*
     // =========================================================================
