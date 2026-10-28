@@ -67,6 +67,14 @@ public class Task {
 
     @ManyToOne
     @JoinColumn (name = "user_id", nullable = false, updatable = false)
+    
     private User user;
+    public String getDescription() {
+        return this.description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
 }

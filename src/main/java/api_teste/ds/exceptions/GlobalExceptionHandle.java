@@ -7,12 +7,16 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import api_teste.ds.exceptions.AuthorizationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import jakarta.validation.ConstraintViolationException;
@@ -66,8 +70,28 @@ public class GlobalExceptionHandle extends ResponseEntityExceptionHandler {
         );
     }
 
+    // Trata validações de DTO (@Valid) com HTTP 422, conforme o roteiro da atividade.
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.UNPROCESSABLE_CONTENT.value(),
+                "Os dados enviados são inválidos.");
+
+        exception.getBindingResult().getFieldErrors().forEach(error ->
+                errorResponse.addValidationError(
+                        error.getField(), error.getDefaultMessage()));
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(errorResponse);
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
     public ResponseEntity<Object> handleConstraintViolation(
             ConstraintViolationException constraintViolationException,
             WebRequest request) {
@@ -75,7 +99,21 @@ public class GlobalExceptionHandle extends ResponseEntityExceptionHandler {
         return buildErrorResponse(
                 constraintViolationException,
                 constraintViolationException.getMessage(),
-                HttpStatus.UNPROCESSABLE_ENTITY,
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                request
+        );
+    }
+
+    @ExceptionHandler(AuthorizationException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<Object> handleAuthorizationException(
+            AuthorizationException authorizationException,
+            WebRequest request) {
+
+        return buildErrorResponse(
+                authorizationException,
+                authorizationException.getMessage(),
+                HttpStatus.FORBIDDEN,
                 request
         );
     }

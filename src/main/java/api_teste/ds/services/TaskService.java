@@ -1,119 +1,75 @@
-import java.util.List; // Importa List para manipular coleções de tarefas
-import java.util.Objects; // Importa Objects para verificações de nulidade
-import java.util.Optional; // Importa Optional para tratar retornos que podem ser nulos
+private UserService userService;
 
-import org.springframework.beans.factory.annotation.Autowired; // Anotação para injeção automática de dependências
-import org.springframework.stereotype.Service; // Anotação que define esta classe como um Serviço do Spring
-import org.springframework.transaction.annotation.Transactional; // Anotação para gerenciamento de transações no banco de dados
+/* 
 
-import api_teste.ds.models.Task; // Importa o modelo da entidade Task
-import api_teste.ds.models.User; // Importa o modelo da entidade User
-import api_teste.ds.models.enums.ProfileEnums; // Importa o enum de perfis de acesso (ADMIN, USER)
-import api_teste.ds.repositories.TaskRepository; // Importa a interface do repositório de tarefas
-import api_teste.ds.security.UserSpringSecurity; // Importa a classe de detalhes do usuário autenticado no Spring Security
-import api_teste.ds.exceptions.AuthorizationException; // Importa a exceção customizada para acesso negado (HTTP 403)
-import api_teste.ds.services.exceptions.DataBindingViolationException; // Importa a exceção customizada para erros de vínculo (HTTP 409)
-import api_teste.ds.services.exceptions.ObjectNotFoundException; // Importa a exceção customizada para recursos não encontrados (HTTP 404)
+// Busca uma tarefa por ID validando se ela existe e se o usuário logado tem autorização para visualizá-la
+@Transactional(readOnly = true)
+public Task findById(Long id) {
+@@ -118,4 +121,66 @@ public void delete(Long id) {
+        throw new DataBindingViolationException("Não é possível excluir pois há entidades relacionadas!");
+    }
+}
+}
+}
+*/
 
-// Classe de serviço responsável pelas regras de negócio, persistência e autorização de tarefas
-@Service
-public class TaskService {
+public Task findById(Long id){
+Optional<Task> task = this.taskRepository.findById(id);
 
-    // Injeta automaticamente a instância do TaskRepository gerenciada pelo Spring
-    @Autowired
-    private TaskRepository taskRepository;
+Task t = task.orElseThrow(() ->new ObjectNotFoundException(
+    "Tarefa não encontrada! Id:" + id + ", Tipo:" + Task.class.getName()));
 
-    // Injeta automaticamente a instância do UserService para buscas de usuário
-    @Autowired
-    private UserService userService;
+    UserSpringSecurity userSpringSecurity = UserService.authenticated();
 
-    // Busca uma tarefa por ID validando se ela existe e se o usuário logado tem autorização para visualizá-la
-    @Transactional(readOnly = true)
-    public Task findById(Long id) {
-        // Executa a busca no banco de dados, retornando um Optional
-        Optional<Task> task = this.taskRepository.findById(id);
+    if(Object.isNull(userSpringSecurity) || !userSpringSecurity.hasRole(ProfileEnums.ADMIN) && !userHasTask(userSpringSecurity, t)){
+        throw new AuthorizationException("Acesso Negado, Voc~e não possui permissão para acessar esta tarefa.");
+    }
+    return t;
+}
 
-        // Se a tarefa não for encontrada, lança a exceção customizada ObjectNotFoundException (HTTP 404)
-        Task obj = task.orElseThrow(() -> new ObjectNotFoundException(
-                "Tarefa não encontrada! Id: " + id + ", Tipo: " + Task.class.getName()));
+public List<TaskProjection> findByLoggedUser(){
+    UserSpringSecurity userSpringSecurity = UserService.authenticated();
 
-        // Recupera o usuário autenticado que está realizando a requisição
-        UserSpringSecurity userSS = UserService.authenticated();
-
-        // Se não houver usuário logado ou se o usuário logado NÃO for ADMIN e a tarefa não pertencer a ele
-        if (Objects.isNull(userSS) || !userSS.hasRole(ProfileEnums.ADMIN) && !obj.getUser().getId().equals(userSS.getId())) {
-            // Lança exceção de autorização negando o acesso (HTTP 403 Forbidden)
-            throw new AuthorizationException("Acesso negado! Você não possui permissão para visualizar esta tarefa.");
-        }
-
-        // Retorna a tarefa encontrada e autorizada
-        return obj;
+    if(Objects.isNull(userSpringSecurity){
+        throw new AuthorizationException("Acesso negado! Usuário não autenticado.");
     }
 
-    // Busca todas as tarefas associadas ao usuário atualmente logado (extraído do token JWT)
-    @Transactional(readOnly = true)
-    public List<Task> findAllByLoggedUser() {
-        // Recupera o usuário ativo no contexto de segurança da aplicação
-        UserSpringSecurity userSS = UserService.authenticated();
+    return this.taskRepository.findByUser_Id(userSpringSecurity.getId());
+}
 
-        // Se a requisição não possuir um usuário autenticado
-        if (Objects.isNull(userSS)) {
-            // Lança exceção de autorização negada
-            throw new AuthorizationException("Acesso negado! Usuário não autenticado.");
-        }
+@Transactional 
+public Task create(Task obj){
+    UserSpringSecurity userSpringSecurity = UserService.authenticated();
 
-        // Executa a consulta no repositório filtrando pelo ID do usuário autenticado
-        return this.taskRepository.findByUser_Id(userSS.getId());
+    if(Objects.isNull(userSpringSecurity)){
+        throw new AuthorizationException("Acesso negado, você precisa estar autenticado.");
     }
 
-    // Cria uma nova tarefa vinculando-a automaticamente ao usuário que está logado
-    @Transactional
-    public Task create(Task obj) {
-        // Recupera o usuário logado no sistema
-        UserSpringSecurity userSS = UserService.authenticated();
+    User user = this.userService.findById(userSpringSecurity.getId());
 
-        // Verifica se existe um usuário autenticado na requisição
-        if (Objects.isNull(userSS)) {
-            throw new AuthorizationException("Acesso negado! Usuário não autenticado.");
-        }
+    obj.setId(null);
+    obj.setUser(user);
 
-        // Busca a entidade User completa no banco de dados a partir do ID do usuário logado
-        User user = this.userService.findById(userSS.getId());
+    return this.taskRepository.save(obj);
+}
 
-        // Garante que o ID seja nulo para forçar um INSERT no banco de dados
-        obj.setId(null);
+@Transactional 
+public Task update (Task obj){
+    Task newObj = findById(obj.getId());
+    newObj.setDescription(obj.getDescription());
+    return this.taskRepository.save(newObj);
+}
 
-        // Associa a entidade User validada à nova tarefa
-        obj.setUser(user);
-
-        // Salva a tarefa no banco de dados e retorna o objeto persistido
-        return this.taskRepository.save(obj);
+public void delete(Long id){
+    findById(id);
+    try{
+        this.taskRepository.deleteById(id);
+    } catch (Exception e){
+        throw new AuthorizationException("Não foi possivel excluir a tarefa especificada");
     }
+}
 
-    // Atualiza a descrição de uma tarefa existente após validar a autorização de propriedade
-    @Transactional
-    public Task update(Task obj) {
-        // Busca a tarefa existente pelo ID (o método findById já valida a existência e a permissão do usuário)
-        Task newObj = findById(obj.getId());
-
-        // Atualiza apenas a descrição do objeto persistido com o novo valor informado
-        newObj.setDescription(obj.getDescription());
-
-        // Salva as alterações no banco de dados e retorna o objeto atualizado
-        return this.taskRepository.save(newObj);
-    }
-
-    // Exclui uma tarefa do banco de dados pelo ID após validar a autorização
-    public void delete(Long id) {
-        // Valida se a tarefa existe e se o usuário logado tem permissão para excluí-la
-        findById(id);
-
-        try {
-            // Solicita a remoção da tarefa no banco de dados pelo ID
-            this.taskRepository.deleteById(id);
-        } catch (Exception e) {
-            // Captura exceções de violação de integridade e lança a exceção customizada (HTTP 409)
-            throw new DataBindingViolationException("Não é possível excluir pois há entidades relacionadas!");
-        }
-    }
+private boolean userHasTask(UserSpringSecurity userSpringSecurity, Task task){
+    return task.getUser().getId().equals(userSpringSecurity.getId());
+}
 }

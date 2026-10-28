@@ -1,87 +1,116 @@
-// Declara o pacote onde a classe está localizada
 package api_teste.ds.services;
 
-// Importa a classe Optional para trabalhar com valores que podem ou não existir
+import java.util.Objects;
 import java.util.Optional;
 
-// Permite que o Spring faça a injeção automática de dependências
 import org.springframework.beans.factory.annotation.Autowired;
-
-// Permite controlar as transações realizadas no banco de dados
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Importa a anotação que identifica a classe como um serviço do Spring
-import org.springframework.stereotype.Service;
-
-// Importa a classe User, que representa a entidade de usuários
+import api_teste.ds.exceptions.AuthorizationException;
 import api_teste.ds.models.User;
-
-// Importa o repositório responsável pelas operações da entidade User
+import api_teste.ds.models.dtos.UserCreateDTO;
+import api_teste.ds.models.dtos.UserUpdateDTO;
+import api_teste.ds.models.enums.ProfileEnums;
 import api_teste.ds.repositories.UserRepository;
+import api_teste.ds.security.UserSpringSecurity;
+import api_teste.ds.services.exceptions.DataBindingViolationException;
+import api_teste.ds.services.exceptions.ObjectNotFoundException;
 
-// Indica ao Spring que esta classe contém regras de negócio e funciona como um serviço
 @Service
 public class UserService {
 
     @Autowired
     private UserRepository userRepository;
 
-    // Busca um usuário pelo ID
-    public User findById(Long id) {
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-        Optional<User> user = this.userRepository.findById(id);
+    // Recupera o usuário autenticado no contexto do Spring Security.
+    public static UserSpringSecurity authenticated() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
 
-        return user.orElseThrow(() -> new RuntimeException(
-            "Usuário não encontrado! Id: " + id +
-            ", Tipo: " + User.class.getName()
-        ));
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken
+                || !(authentication.getPrincipal() instanceof UserSpringSecurity)) {
+            return null;
+        }
+
+        return (UserSpringSecurity) authentication.getPrincipal();
     }
 
-    // Cria um novo usuário
-    @Transactional
-    public User create(User obj) {
+    // Busca um usuário pelo ID, permitindo que USER veja o próprio perfil e ADMIN qualquer perfil.
+    @Transactional(readOnly = true)
+    public User findById(Long id) {
+        Optional<User> user = this.userRepository.findById(id);
+        User obj = user.orElseThrow(() -> new ObjectNotFoundException(
+                "Usuário não encontrado! Id: " + id + ", Tipo: " + User.class.getName()));
 
-        // Garante que o ID seja nulo para criar um novo registro
-        obj.setId(null);
+        UserSpringSecurity userSS = authenticated();
+        if (Objects.isNull(userSS)
+                || (!userSS.hasRole(ProfileEnums.ADMIN) && !id.equals(userSS.getId()))) {
+            throw new AuthorizationException("Acesso negado!");
+        }
 
-        // Salva o usuário no banco de dados
-        obj = this.userRepository.save(obj);
-
-        // Retorna o usuário criado
         return obj;
     }
 
-    // Atualiza um usuário existente
+    // Busca um usuário pelo username, utilizado pelo fluxo autenticado.
+    @Transactional(readOnly = true)
+    public User findByUsername(String username) {
+        User user = this.userRepository.findByUsername(username);
+        if (user == null) {
+            throw new ObjectNotFoundException("Usuário não encontrado: " + username);
+        }
+        return user;
+    }
+
+    // Converte o DTO de criação para entidade e codifica a senha antes de persistir.
+    public User fromDTO(UserCreateDTO objDto) {
+        User obj = new User();
+        obj.setUsername(objDto.getUsername());
+        obj.setPassword(passwordEncoder.encode(objDto.getPassword()));
+        return obj;
+    }
+
+    // Converte o DTO de atualização; o username não pode ser alterado neste fluxo.
+    public User fromDTO(UserUpdateDTO objDto) {
+        User obj = new User();
+        obj.setId(objDto.getId());
+        obj.setPassword(passwordEncoder.encode(objDto.getPassword()));
+        return obj;
+    }
+
+    // Cria um novo usuário.
+    @Transactional
+    public User create(User obj) {
+        obj.setId(null);
+        return this.userRepository.save(obj);
+    }
+
+    // Atualiza somente a senha do usuário informado.
     @Transactional
     public User update(User obj) {
-
-        // Busca o usuário existente pelo ID
         User newObj = findById(obj.getId());
-
-        // Atualiza a senha
         newObj.setPassword(obj.getPassword());
-
-        // Salva as alterações no banco de dados
         return this.userRepository.save(newObj);
     }
 
-    // Deleta um usuário pelo ID
+    // Deleta um usuário pelo ID; findById também valida existência e autorização.
+    @Transactional
     public void delete(Long id) {
-
-        // Verifica se o usuário existe
         findById(id);
-
         try {
-
-            // Deleta o usuário pelo ID
             this.userRepository.deleteById(id);
-
         } catch (Exception e) {
-
-            // Captura erros relacionados a entidades
-            throw new RuntimeException(
-                "Não é possível excluir o usuário pois há entidades relacionadas."
-            );
+            throw new DataBindingViolationException(
+                    "Não é possível excluir o usuário pois há entidades relacionadas.");
         }
     }
 }

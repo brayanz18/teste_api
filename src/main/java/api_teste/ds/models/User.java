@@ -129,6 +129,8 @@ public class User { // Declaração da classe pública User
     }
 }
 */
+import java.util.stream.Collectors;
+import api_teste.ds.models.enums.ProfileEnums;
 import java.util.ArrayList; // Importação da classe ArrayList para manipular listas dinâmicas
 import java.util.HashSet; // Importação da classe HashSet para manipular conjuntos sem elementos duplicados
 import java.util.List; // Importação da interface List
@@ -207,6 +209,11 @@ public class User{
 
     public void addProfile(ProfileEnums profile){
         this.profiles.add(profile.getCode());
+    }
+    public Set<ProfileEnums> getProfiles() {
+        return this.profiles.stream()
+                .map(ProfileEnums::toEnum)
+                .collect(Collectors.toSet());
     }
 
 }
