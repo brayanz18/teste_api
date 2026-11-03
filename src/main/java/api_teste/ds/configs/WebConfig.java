@@ -14,6 +14,6 @@ public class WebConfig implements WebMvcConfigurer { // Classe de cinfiguração
 
     @Override // Sobreescreve o método de mapeamento CORS padrão da interface WebMvcConfigurer
     public void addCorsMappings(CorsRegistry registry) { // Método indicado pelo Spring para registrar as regras do CORS
-        registry.addMapping("/**"); // Libera qualquer rota da API(coringa "/**") para aceitar chamadas externas
+        registry.addMapping("/**").allowedOrigins("*").allowedHeaders("*").allowedMethods("GET", "POST", "DELETE", "OPTONS", "HEAD", "TRACE", "CONNECT"); // Libera qualquer rota da API(coringa "/**") para aceitar chamadas externas
     }
 }

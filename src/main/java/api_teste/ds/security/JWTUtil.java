@@ -1,5 +1,7 @@
+
 package api_teste.ds.security;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Objects;
 
@@ -22,7 +24,7 @@ public class JWTUtil {
     private Long expiration;
 
     private SecretKey getKeyToSign() {
-        return Keys.hmacShaKeyFor(this.secret.getBytes());
+        return Keys.hmacShaKeyFor(this.secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String username) {
@@ -43,29 +45,36 @@ public class JWTUtil {
             Date expirationDate = claims.getExpiration();
             Date now = new Date(System.currentTimeMillis());
 
-            if (Objects.nonNull(username) && Objects.nonNull(expirationDate) && now.before(expirationDate)) {
+            if (Objects.nonNull(username)
+                    && Objects.nonNull(expirationDate)
+                    && now.before(expirationDate)) {
                 return true;
             }
         }
+
         return false;
     }
 
     public String getUsername(String token) {
         Claims claims = getClaims(token);
+
         if (Objects.nonNull(claims)) {
             return claims.getSubject();
         }
+
         return null;
     }
 
     private Claims getClaims(String token) {
         try {
             SecretKey key = getKeyToSign();
+
             return Jwts.parser()
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+
         } catch (Exception e) {
             return null;
         }
