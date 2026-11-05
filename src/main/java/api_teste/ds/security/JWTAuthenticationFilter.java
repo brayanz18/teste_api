@@ -31,37 +31,33 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request,
-            HttpServletResponse response) throws AuthenticationException {
-
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
+            throws AuthenticationException {
         try {
             User user = new ObjectMapper().readValue(request.getInputStream(), User.class);
 
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                            user.getUsername(),
-                            user.getPassword(),
-                            new ArrayList<>()
-                    );
-
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    user.getUsername(),
+                    user.getPassword(),
+                    new ArrayList<>()
+            );
             return this.authenticationManager.authenticate(authToken);
-
         } catch (IOException e) {
             throw new RuntimeException("Erro ao processar as credenciais de autenticação", e);
         }
     }
 
     @Override
-    protected void successfulAuthentication(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain,
-            Authentication authResult) throws IOException, ServletException {
+    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+            FilterChain filterChain, Authentication authResult) throws IOException, ServletException {
 
         UserSpringSecurity userSS = (UserSpringSecurity) authResult.getPrincipal();
-
         String token = this.jwtUtil.generateToken(userSS.getUsername());
 
+        // Corrigido "Authorization" (com 'h') e adicionado o espaço em "Bearer "
         response.addHeader("Authorization", "Bearer " + token);
+
+        // Corrigido "Access-Control-Expose-Headers" (com 'e' em Expose)
         response.addHeader("Access-Control-Expose-Headers", "Authorization");
     }
 }

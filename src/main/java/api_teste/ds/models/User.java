@@ -129,91 +129,112 @@ public class User { // Declaração da classe pública User
     }
 }
 */
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
 import api_teste.ds.models.enums.ProfileEnums;
-import java.util.ArrayList; // Importação da classe ArrayList para manipular listas dinâmicas
-import java.util.HashSet; // Importação da classe HashSet para manipular conjuntos sem elementos duplicados
-import java.util.List; // Importação da interface List
-import java.util.Objects; // Importação da classe utilitária Objects para comparações e geração de hash
-import java.util.Set; // Importação da interface Set
-import java.util.stream.Collectors; // Importação da classe Collectors para recolher dados de Streams
 
-import com.fasterxml.jackson.annotation.JsonProperty; // Importação da anotação JsonProperty para mapeamento JSON
-import com.fasterxml.jackson.annotation.JsonProperty.Access; // Importação da enumeração Access para controlar acessos de leitura/escrita no JSON
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
-import jakarta.persistence.CollectionTable; // Importação da anotação CollectionTable para configurar a tabela auxiliar do JPA
-import jakarta.persistence.Column; // Importação da anotação Column para mapear colunas da base de dados
-import jakarta.persistence.ElementCollection; // Importação da anotação ElementCollection para coleções de elementos simples
-import jakarta.persistence.Entity; // Importação da anotação Entity para indicar uma entidade JPA
-import jakarta.persistence.FetchType; // Importação da enumeração FetchType para definir a estratégia de carregamento
-import jakarta.persistence.GeneratedValue; // Importação da anotação GeneratedValue para estratégia de geração de ID
-import jakarta.persistence.GenerationType; // Importação da enumeração GenerationType para os tipos de geração de chave primária
-import jakarta.persistence.Id; // Importação da anotação Id para identificar a chave primária
-import jakarta.persistence.OneToMany; // Importação da anotação OneToMany para relacionamentos de um-para-muitos
-import jakarta.persistence.Table; // Importação da anotação Table para especificar o nome da tabela
-import jakarta.validation.constraints.NotBlank; // Importação da anotação NotBlank para validar campos não vazios
-import jakarta.validation.constraints.Size; // Importação da anotação Size para validar limites de tamanho
-import api_teste.ds.models.enums.ProfileEnums;// Importação do enumerador de perfis do projeto
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 import lombok.Data;
 
-@Entity 
+@Entity
 @Table(name = User.TABLE_NAME)
-@AllArgsConstructor 
-@NoArgsConstructor 
-@Data 
+@Data
+public class User {
 
-public class User{
-    
     public static final String TABLE_NAME = "user";
 
-    @Id 
-    @GeneratedValue 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true)
     private Long id;
 
-    @Column (name = "username", length  = 100, nullable = false, unique = true)
-    @NotBlank 
+    @Column(name = "username", length = 100, nullable = false, unique = true)
+    @NotBlank
     @Size(min = 2, max = 100)
     private String username;
 
-    @Column (name = "password", length  = 100, nullable = false, unique = true)
-    @NotBlank 
+    @JsonProperty(access = Access.WRITE_ONLY)
+    @Column(name = "password", length = 60, nullable = false)
+    @NotBlank
     @Size(min = 8, max = 60)
     private String password;
 
     @OneToMany(mappedBy = "user")
     @JsonProperty(access = Access.WRITE_ONLY)
-    @Column(name = "password", length = 60, nullable = false)
-    @NotBlank 
-    @Size (min = 8, max = 60)
     private List<Task> tasks = new ArrayList<>();
 
-    @ElementCollection (fetch = FetchType.EAGER)
-    @CollectionTable (name = "user_profile")
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_profile")
     @Column(name = "profile", nullable = false)
     private Set<Integer> profiles = new HashSet<>();
 
-    public User (Long id, String username, String password){
-        this.id = id;
-        this.username = username;
-        this.password = password;
+    // Construtor vazio
+    public User() {
         addProfile(ProfileEnums.USER);
     }
 
-    public Set<ProfileEnums> getprofiles(){
-        return this.profiles.stream().map(x-> ProfileEnums.toEnum(x)).collect(Collectors.toSet());
-
+    // Construtor com parâmetros
+    public User(Long id, String username, String password) {
+        this();
+        this.id = id;
+        this.username = username;
+        this.password = password;
     }
 
-    public void addProfile(ProfileEnums profile){
-        this.profiles.add(profile.getCode());
-    }
+    // Retorna os perfis convertidos para enum
     public Set<ProfileEnums> getProfiles() {
         return this.profiles.stream()
                 .map(ProfileEnums::toEnum)
                 .collect(Collectors.toSet());
     }
 
+    // Adiciona um perfil ao usuário
+    public void addProfile(ProfileEnums profile) {
+        this.profiles.add(profile.getCode());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+
+        if (this == obj) {
+            return true;
+        }
+
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+
+        User other = (User) obj;
+
+        return Objects.equals(this.id, other.id)
+                && Objects.equals(this.username, other.username)
+                && Objects.equals(this.password, other.password);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.id, this.username, this.password);
+    }
 }

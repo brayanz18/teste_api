@@ -1,3 +1,4 @@
+
 package api_teste.ds.services;
 
 import java.util.Objects;
@@ -11,7 +12,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.validation.Valid;
 import api_teste.ds.exceptions.AuthorizationException;
 import api_teste.ds.models.User;
 import api_teste.ds.models.dtos.UserCreateDTO;
@@ -22,8 +22,6 @@ import api_teste.ds.security.UserSpringSecurity;
 import api_teste.ds.services.exceptions.DataBindingViolationException;
 import api_teste.ds.services.exceptions.ObjectNotFoundException;
 
-import api_teste.ds.security.UserSpringSecurity;
-
 @Service
 public class UserService {
 
@@ -33,8 +31,9 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // Recupera o usuário autenticado no contexto do Spring Security.
+    // Recupera o usuário autenticado
     public static UserSpringSecurity authenticated() {
+
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
@@ -42,76 +41,113 @@ public class UserService {
                 || !authentication.isAuthenticated()
                 || authentication instanceof AnonymousAuthenticationToken
                 || !(authentication.getPrincipal() instanceof UserSpringSecurity)) {
+
             return null;
         }
 
         return (UserSpringSecurity) authentication.getPrincipal();
     }
 
-    // Busca um usuário pelo ID, permitindo que USER veja o próprio perfil e ADMIN qualquer perfil.
+    // Busca usuário pelo ID
     @Transactional(readOnly = true)
     public User findById(Long id) {
+
         Optional<User> user = this.userRepository.findById(id);
+
         User obj = user.orElseThrow(() -> new ObjectNotFoundException(
-                "Usuário não encontrado! Id: " + id + ", Tipo: " + User.class.getName()));
+                "Usuário não encontrado! Id: " + id
+                + ", Tipo: " + User.class.getName()));
 
         UserSpringSecurity userSS = authenticated();
+
         if (Objects.isNull(userSS)
-                || (!userSS.hasRole(ProfileEnums.ADMIN) && !id.equals(userSS.getId()))) {
+                || (!userSS.hasRole(ProfileEnums.ADMIN)
+                && !id.equals(userSS.getId()))) {
+
             throw new AuthorizationException("Acesso negado!");
         }
 
         return obj;
     }
 
-    // Busca um usuário pelo username, utilizado pelo fluxo autenticado.
+    // Busca usuário pelo username
     @Transactional(readOnly = true)
     public User findByUsername(String username) {
+
         User user = this.userRepository.findByUsername(username);
+
         if (user == null) {
-            throw new ObjectNotFoundException("Usuário não encontrado: " + username);
+            throw new ObjectNotFoundException(
+                    "Usuário não encontrado: " + username);
         }
+
         return user;
     }
 
-    // Converte o DTO de criação para entidade e codifica a senha antes de persistir.
+    // Converte DTO de criação para entidade
     public User fromDTO(UserCreateDTO objDto) {
+
         User obj = new User();
+
         obj.setUsername(objDto.getUsername());
+
+        // Criptografa a senha usando BCrypt
         obj.setPassword(passwordEncoder.encode(objDto.getPassword()));
+
         return obj;
     }
 
-    // Converte o DTO de atualização; o username não pode ser alterado neste fluxo.
+    // Converte DTO de atualização
     public User fromDTO(UserUpdateDTO objDto) {
+
         User obj = new User();
+
         obj.setId(objDto.getId());
+
         obj.setPassword(passwordEncoder.encode(objDto.getPassword()));
+
         return obj;
     }
 
-    // Cria um novo usuário.
+    // Cadastra um novo usuário
     @Transactional
     public User create(User obj) {
+
         obj.setId(null);
+
+        // Verifica se o username já está cadastrado
+        if (this.userRepository.findByUsername(obj.getUsername()) != null) {
+
+            throw new DataBindingViolationException(
+                    "Esse nome de usuário já está cadastrado. Escolha outro.");
+        }
+
         return this.userRepository.save(obj);
     }
 
-    // Atualiza somente a senha do usuário informado.
+    // Atualiza a senha do usuário
     @Transactional
     public User update(User obj) {
+
         User newObj = findById(obj.getId());
+
         newObj.setPassword(obj.getPassword());
+
         return this.userRepository.save(newObj);
     }
 
-    // Deleta um usuário pelo ID; findById também valida existência e autorização.
+    // Deleta um usuário
     @Transactional
     public void delete(Long id) {
+
         findById(id);
+
         try {
+
             this.userRepository.deleteById(id);
+
         } catch (Exception e) {
+
             throw new DataBindingViolationException(
                     "Não é possível excluir o usuário pois há entidades relacionadas.");
         }

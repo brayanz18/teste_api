@@ -1,47 +1,107 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br"> <!-- Define o idioma como Português do Brasil -->
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minhas Tarefas - Gerenciador</title>
+    <meta charset="UTF-8"> <!-- Configuração de caracteres UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Viewport responsiva -->
+    <title>Minhas Tarefas - Gerenciador</title> <!-- Título da página principal -->
 
-    <link href="https://cdn.jsdelivre.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-light">
 
-    <nav class="navbar navbar-dark bg-dark mb-4">
-        <div class="container d-flex justify-content-between align-items-center">
-            <span class="navbar-brand mb-9 h1">Gerenciador de Tarefas</span>
+<!-- Barra de navegação do topo com botão de logout -->
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container d-flex justify-content-between align-items-center">
+        <span class="navbar-brand mb-0 h1">Gerenciador de Tarefas</span>
 
-            <button onclick="logout()" class="btn btn-outline-danger btn-sm"> Sair / Logout</button>
+        <!-- Botão de logout que chama a função logout() ao ser clicado -->
+        <button onclick="logout()" class="btn btn-outline-danger btn-sm">Sair / Logout</button>
+    </div>
+</nav>
 
-        </div>
-    </nav>
-    <div class="container">
-        <div class="row-justify-content-center">
-            <div class="col-md-8"></div>
+<div class="container"> <!-- Container principal da página -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
-                    <h4 class="mb-0"> Suas Tarefas</h4>
-
+                    <h4 class="mb-0">Suas Tarefas</h4>
                 </div>
+
                 <div class="card-body">
+
+                    <!-- Elemento visual de carregamento (spinner) escondido por padrão -->
                     <div id="loading" class="text-center my-3" style="display: none;">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Carregando...</span>
                         </div>
                     </div>
+
+                    <!-- Lista onde as tarefas recebidas da API serão injetadas via JavaScript -->
                     <ul id="tasks-list" class="list-group">
-                        
+                        <!-- Os elementos <li> com as tarefas serão montados dinamicamente pelo script.js -->
                     </ul>
 
                 </div>
             </div>
+
         </div>
+    </div>
+</div>
 
+<!-- Modal para edição de tarefas -->
+<div class="modal fade" id="editTaskModel" tabindex="-1" aria-labelledby="editTaskModelLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <!-- Cabeçalho do modal -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTaskModelLabel">Editar tarefa</h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editTaskId">
+                
+                <div class="mb-3">
+                    <label for="edit-task-description" class="form-label">Descrição da Tarefa</label>
+                    <input type="text" class="form-control" id="edit-task-description" required minLength="1" maxLength="500">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                </div>
+            </div>
+
+            <!-- Corpo do modal -->
+            <div class="modal-body">
+                <!-- Conteúdo do formulário de edição será inserido aqui -->
+            </div>
+
+            <!-- Rodapé do modal -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+
+                <button type="button" class="btn btn-primary">
+                    Salvar alterações
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Importação do script JavaScript global para controle das tarefas e sessão -->
+
+<script src="scripts/script.js"></script>
 </body>
-
 </html>
